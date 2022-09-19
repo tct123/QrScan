@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import validators
-from kivy.app import App
+from kivymd.app import MDApp
+from kivy.lang import Builder
 from kivy.clock import Clock
 from kivy.core.clipboard import Clipboard
 from kivy.logger import LOG_LEVELS, Logger
@@ -9,13 +10,14 @@ from kivy.uix.screenmanager import Screen
 from kivy.utils import platform
 from kivymd.icon_definitions import md_icons
 from kivymd.theming import ThemeManager
-from kivymd.toolbar import Toolbar
+from kivymd.uix.toolbar import MDTopAppBar # Toolbar
 from raven import Client
 from raven.conf import setup_logging
 from raven.handlers.logging import SentryHandler
 
-from .version import __version__
+# from .version import __version__
 
+versionnumber = "2022.0919"
 
 class CodeType(object):
     TEXT = 0
@@ -37,7 +39,7 @@ class CodeType(object):
         return code_type
 
 
-class CustomToolbar(Toolbar):
+class CustomToolbar(MDTopAppBar):
     """
     Toolbar with helper method for loading default/back buttons.
     """
@@ -93,7 +95,7 @@ class AboutScreen(SubScreen):
 
     def load_about(self):
         self.about_text_property = "" + \
-            "QrScan version: %s\n" % (__version__) + \
+            "QrScan version: %s\n" % (versionnumber) + \
             "Project source code and info available on GitHub at:\n" + \
             "[color=00BFFF][ref=github]" + \
             self.project_page_property + \
@@ -180,65 +182,67 @@ class DebugRavenClient(object):
         raise
 
 
-def configure_sentry(in_debug=False):
-    """
-    Configure the Raven client, or create a dummy one if `in_debug` is `True`.
-    """
-    key = '6d7cf8f828fa4bc0b6837f9f33123ae9'
-    # the public DSN URL is not available on the Python client
-    # so we're exposing the secret and will be revoking it on abuse
-    # https://github.com/getsentry/raven-python/issues/569
-    secret = '828fc60c7d434d6d96a3ff2a07542224'
-    project_id = '303227'
-    dsn = 'https://{key}:{secret}@sentry.io/{project_id}'.format(
-        key=key, secret=secret, project_id=project_id)
-    if in_debug:
-        client = DebugRavenClient()
-    else:
-        client = Client(dsn=dsn, release=__version__)
-        # adds context for Android devices
-        if platform == 'android':
-            from jnius import autoclass
-            Build = autoclass("android.os.Build")
-            VERSION = autoclass('android.os.Build$VERSION')
-            android_os_build = {
-                'model': Build.MODEL,
-                'brand': Build.BRAND,
-                'device': Build.DEVICE,
-                'manufacturer': Build.MANUFACTURER,
-                'version_release': VERSION.RELEASE,
-            }
-            client.user_context({'android_os_build': android_os_build})
-        # Logger.error() to Sentry
-        # https://docs.sentry.io/clients/python/integrations/logging/
-        handler = SentryHandler(client)
-        handler.setLevel(LOG_LEVELS.get('error'))
-        setup_logging(handler)
-    return client
+#def configure_sentry(in_debug=False):
+#    """
+#    Configure the Raven client, or create a dummy one if `in_debug` is `True`.
+#    """
+#    key = '6d7cf8f828fa4bc0b6837f9f33123ae9'
+#    # the public DSN URL is not available on the Python client
+#    # so we're exposing the secret and will be revoking it on abuse
+#    # https://github.com/getsentry/raven-python/issues/569
+#    secret = '828fc60c7d434d6d96a3ff2a07542224'
+#    project_id = '303227'
+#    dsn = 'https://{key}:{secret}@sentry.io/{project_id}'.format(
+#        key=key, secret=secret, project_id=project_id)
+#    if in_debug:
+#        client = DebugRavenClient()
+#    else:
+#        client = Client(dsn=dsn, release=versionnumber) # __version__
+#        # adds context for Android devices
+#        if platform == 'android':
+#            from jnius import autoclass
+#            Build = autoclass("android.os.Build")
+#            VERSION = autoclass('android.os.Build$VERSION')
+#            android_os_build = {
+#                'model': Build.MODEL,
+#                'brand': Build.BRAND,
+#                'device': Build.DEVICE,
+#                'manufacturer': Build.MANUFACTURER,
+#                'version_release': VERSION.RELEASE,
+#            }
+#            client.user_context({'android_os_build': android_os_build})
+#        # Logger.error() to Sentry
+#        # https://docs.sentry.io/clients/python/integrations/logging/
+#        handler = SentryHandler(client)
+#        handler.setLevel(LOG_LEVELS.get('error'))
+#        setup_logging(handler)
+#    return client
 
 
-class MainApp(App):
+class MainApp(MDApp):
 
     theme_cls = ThemeManager()
 
     def build(self):
         self.icon = "docs/images/icon.png"
+        x = Builder.load_file("main.kv")
+        return x
 
 
-def main():
-    # when the -d/--debug flag is set, Kivy sets log level to debug
-    level = Logger.getEffectiveLevel()
-    in_debug = level == LOG_LEVELS.get('debug')
-    client = configure_sentry(in_debug)
-    try:
-        MainApp().run()
-    except Exception:
-        if type(client) == Client:
-            Logger.info(
-                'Errors will be sent to Sentry, run with "--debug" if you '
-                'are a developper and want to the error in the shell.')
-        client.captureException()
+#def main():
+#    # when the -d/--debug flag is set, Kivy sets log level to debug
+#    level = Logger.getEffectiveLevel()
+#    in_debug = level == LOG_LEVELS.get('debug')
+#    client = configure_sentry(in_debug)
+#    try:
+#        MainApp().run()
+#    except Exception:
+#        if type(client) == Client:
+#            Logger.info(
+#                'Errors will be sent to Sentry, run with "--debug" if you '
+#                'are a developper and want to the error in the shell.')
+#        client.captureException()
 
 
 if __name__ == '__main__':
-    main()
+    MainApp().run()

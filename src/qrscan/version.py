@@ -1,4 +1,4 @@
-__version__ = '2020.0528'
+__version__ = '2022.0919'
 # The `__version_code__` is used for the F-Droid auto update and should match
 # the `versionCode` from:
 # `.buildozer/android/platform/build-*/dists/qrscan_*/build.gradle`
